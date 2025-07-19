@@ -3,18 +3,22 @@ resource "aws_apigatewayv2_api" "http_api" {
   protocol_type = "HTTP"
 }
 
-resource "aws_apigatewayv2_vpc_link" "vpc_link" {
-  name               = "${var.prefix}-vpc-link"
-  subnet_ids         = aws_subnet.private_subnets[*].id
-  security_group_ids = [aws_security_group.lambda_sg.id]
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.transaction.invoke_arn
+  integration_method     = "POST"
+  payload_format_version = "2.0"
 }
 
-resource "aws_apigatewayv2_integration" "nlb_integration" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "HTTP_PROXY"
-  integration_uri        = aws_lb_listener.nlb_listener.arn
-  integration_method     = "ANY"
-  connection_type        = "VPC_LINK"
-  connection_id          = aws_apigatewayv2_vpc_link.vpc_link.id
-  payload_format_version = "1.0"
+resource "aws_apigatewayv2_route" "main" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "$default"
+  auto_deploy = true
 }

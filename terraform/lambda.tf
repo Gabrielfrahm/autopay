@@ -18,6 +18,33 @@ resource "aws_iam_policy_attachment" "lambda_basic_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_policy" "lambda_vpc_access" {
+  name        = "lambda-vpc-access"
+  description = "Permissões para Lambda acessar recursos de rede em VPC"
+  policy      = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ],
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy_attachment" "lambda_vpc_access_attach" {
+  name       = "lambda-vpc-access-attach"
+  roles      = [aws_iam_role.lambda_exec_role.name]
+  policy_arn = aws_iam_policy.lambda_vpc_access.arn
+}
+
 resource "aws_lambda_function" "transaction" {
   function_name = "transaction"
   role          = aws_iam_role.lambda_exec_role.arn
@@ -35,7 +62,6 @@ resource "aws_lambda_function" "transaction" {
   tags = {
     Name = "transaction-lambda"
   }
- 
 }
 
 resource "aws_lambda_function" "autopay" {
@@ -56,4 +82,3 @@ resource "aws_lambda_function" "autopay" {
     Name = "autopay-lambda"
   }
 }
-
