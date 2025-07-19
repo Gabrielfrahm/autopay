@@ -9,11 +9,11 @@ const lambdas = [
 
 lambdas.forEach((lambdaName) => {
   esbuild.build({
-    entryPoints: [path.join(__dirname, lambdaName, "index.ts")],
+    entryPoints: [path.join(__dirname, lambdaName, "handler.ts")],
     bundle: true,
     platform: "node",
     target: "node22",
-    outfile: path.join(__dirname, "..", "dist", lambdaName, "index.js"),
+    outfile: path.join(__dirname, "..", "dist", lambdaName, "handler.js"),
     minify: true,
   }).catch(() => process.exit(1));
 });
