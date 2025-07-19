@@ -1,0 +1,87 @@
+name: Deploy to AWS with Terraform
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO_NAME: autopay
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v3
+
+      - name: 🧰 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: ⚙️ Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: 🛠️ install deps and build lambdas
+        run: |
+          cd lambdas
+          npm ci
+          npm run build
+
+      - name: 📦 zips lambdas
+        run: |
+          set -e
+          ROOT_DIR=$(pwd)
+          mkdir -p "$ROOT_DIR/terraform/lambda_zips"
+
+          for lambda in transaction autopay; do
+            echo "🔧 init... $lambda..."
+
+            LAMBDA_PATH="$ROOT_DIR/lambdas/$lambda"
+            DIST_PATH="$LAMBDA_PATH/dist"
+
+            if [ ! -d "$DIST_PATH" ]; then
+              echo "❌ error on find $lambda in $DIST_PATH"
+              exit 1
+            fi
+
+            mkdir -p "$LAMBDA_PATH/dist_bundle"
+            cp -r "$DIST_PATH"/* "$LAMBDA_PATH/dist_bundle/"
+            cp "$LAMBDA_PATH/package.json" "$LAMBDA_PATH/dist_bundle/"
+
+            echo "📦 install libs..."
+            npm install --omit=dev --prefix "$LAMBDA_PATH/dist_bundle"
+
+            echo "📦 zipping Lambda $lambda..."
+            cd "$LAMBDA_PATH/dist_bundle"
+            zip -r "$ROOT_DIR/terraform/lambda_zips/$lambda.zip" . || {
+              echo "❌ Error zipping $lambda"
+              exit 1
+            }
+            cd "$ROOT_DIR"
+
+            echo "🧹 Cleaning up temporary bundle..."
+            rm -rf "$LAMBDA_PATH/dist_bundle"
+
+            echo "✅ Lambda $lambda packaged successfully!"
+          done
+
+      - name: 🔐 config aws
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: ⚙️ Terraform Init
+        working-directory: ./terraform
+        run: terraform init -reconfigure
+
+      - name: 🚀 apply infra terraform
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
