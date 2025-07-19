@@ -33,7 +33,7 @@ jobs:
           npm ci
           npm run build
 
-      - name: 📦 zips lambdas
+      - name: 📦 Zipping Lambdas
         run: |
           set -e
           ROOT_DIR=$(pwd)
@@ -46,29 +46,16 @@ jobs:
             DIST_PATH="$DIST_ROOT/$lambda"
 
             if [ ! -d "$DIST_PATH" ]; then
-              echo "❌ error on find $lambda in $DIST_PATH"
+              echo "❌ Error on build: $DIST_PATH"
               exit 1
             fi
 
-            BUNDLE_PATH="$DIST_ROOT/${lambda}_bundle"
-            mkdir -p "$BUNDLE_PATH"
-
-            cp -r "$DIST_PATH"/* "$BUNDLE_PATH/"
-            cp "lambdas/$lambda/package.json" "$BUNDLE_PATH/"
-
-            echo "📦 install libs..."
-            npm install --omit=dev --prefix "$LAMBDA_PATH/dist_bundle"
-
-            echo "📦 zipping Lambda $lambda..."
-            cd "$BUNDLE_PATH"
+            cd "$DIST_PATH"
             zip -r "$ROOT_DIR/terraform/lambda_zips/$lambda.zip" . || {
               echo "❌ Error zipping $lambda"
               exit 1
             }
             cd "$ROOT_DIR"
-
-            echo "🧹 Cleaning up temporary bundle..."
-            rm -rf "$BUNDLE_PATH"
 
             echo "✅ Lambda $lambda packaged successfully!"
           done
