@@ -37,28 +37,30 @@ jobs:
         run: |
           set -e
           ROOT_DIR=$(pwd)
+          DIST_ROOT="$ROOT_DIR/dist"
           mkdir -p "$ROOT_DIR/terraform/lambda_zips"
 
           for lambda in transaction autopay; do
             echo "🔧 init... $lambda..."
 
-            LAMBDA_PATH="$ROOT_DIR/lambdas/$lambda"
-            DIST_PATH="$LAMBDA_PATH/dist"
+            DIST_PATH="$DIST_ROOT/$lambda"
 
             if [ ! -d "$DIST_PATH" ]; then
               echo "❌ error on find $lambda in $DIST_PATH"
               exit 1
             fi
 
-            mkdir -p "$LAMBDA_PATH/dist_bundle"
-            cp -r "$DIST_PATH"/* "$LAMBDA_PATH/dist_bundle/"
-            cp "$LAMBDA_PATH/package.json" "$LAMBDA_PATH/dist_bundle/"
+            BUNDLE_PATH="$DIST_ROOT/${lambda}_bundle"
+            mkdir -p "$BUNDLE_PATH"
+
+            cp -r "$DIST_PATH"/* "$BUNDLE_PATH/"
+            cp "lambdas/$lambda/package.json" "$BUNDLE_PATH/"
 
             echo "📦 install libs..."
             npm install --omit=dev --prefix "$LAMBDA_PATH/dist_bundle"
 
             echo "📦 zipping Lambda $lambda..."
-            cd "$LAMBDA_PATH/dist_bundle"
+            cd "$BUNDLE_PATH"
             zip -r "$ROOT_DIR/terraform/lambda_zips/$lambda.zip" . || {
               echo "❌ Error zipping $lambda"
               exit 1
@@ -66,7 +68,7 @@ jobs:
             cd "$ROOT_DIR"
 
             echo "🧹 Cleaning up temporary bundle..."
-            rm -rf "$LAMBDA_PATH/dist_bundle"
+            rm -rf "$BUNDLE_PATH"
 
             echo "✅ Lambda $lambda packaged successfully!"
           done
