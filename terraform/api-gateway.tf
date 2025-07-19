@@ -1,7 +1,6 @@
-resource "aws_apigatewayv2_vpc_link" "vpc_link" {
-  name = "${var.prefix}-vpc-link"
-  subnet_ids = aws_subnet.private_subnets[*].id
-  security_group_ids = [aws_security_group.lambda_sg.id]
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "${var.prefix}-http-api"
+  protocol_type = "HTTP"
 }
 
 resource "aws_apigatewayv2_vpc_link" "vpc_link" {
