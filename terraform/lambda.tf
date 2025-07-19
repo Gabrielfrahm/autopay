@@ -82,3 +82,12 @@ resource "aws_lambda_function" "autopay" {
     Name = "autopay-lambda"
   }
 }
+
+
+resource "aws_lambda_permission" "apigw_invoke_transaction" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.transaction.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
