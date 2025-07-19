@@ -28,6 +28,7 @@ jobs:
 
       - name: 🛠️ install deps and build lambdas
         run: |
+          cd lambdas
           npm ci
           npm run build
 
