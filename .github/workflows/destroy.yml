@@ -1,4 +1,4 @@
-name: Deploy to AWS with Terraform
+name: destroy to AWS with Terraform
 
 on:
   workflow_dispatch:
