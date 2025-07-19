@@ -1,4 +1,4 @@
-resource "aws_apigateway_vpc_link" "vpc_link" {
+resource "aws_api_gateway_vpc_link" "vpc_link" {
   name        = "${var.prefix}-vpc-link"
   target_arns = [aws_lb.nlb.arn]
 }
